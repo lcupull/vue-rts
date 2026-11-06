@@ -11,6 +11,8 @@
   >
     <GameWorld />
 
+    <BuildPanel />
+
     <!-- Рамка выделения — рисуется поверх всего в экранных координатах -->
     <div v-if="selectionRect" class="game-viewport__selection" :style="selectionStyle"></div>
 
@@ -28,6 +30,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
 import GameWorld from './GameWorld.vue';
+import BuildPanel from './BuildPanel.vue';
 import { useGameLoop } from '@/composables/useGameLoop';
 import { Z_INDEX } from '@/config/game';
 
@@ -54,7 +57,9 @@ const onMouseDown = (event) => {
 };
 
 const onMouseMove = (event) => {
-  store.dispatch('events/updateDrag', getScreenPoint(event));
+  const point = getScreenPoint(event);
+  store.dispatch('events/updateCursor', point);
+  store.dispatch('events/updateDrag', point);
 };
 
 // Отпускание ЛКМ завершает выделение; ПКМ и mouseleave выделение не трогают

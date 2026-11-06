@@ -1,5 +1,5 @@
 import {
-  UNIT_SPEED, UNIT_RADIUS, MAP_SIZE, EDGE_PADDING, GRID_STEP, BUILDING_SIZE
+  UNIT_SPEED, UNIT_RADIUS, MAP_SIZE, EDGE_PADDING, GRID_STEP
 } from '@/config/game';
 import { useIsoMath } from '@/composables/useIsoMath';
 
@@ -7,6 +7,13 @@ const { worldToScreen } = useIsoMath();
 
 const LIMIT = MAP_SIZE / 2 - UNIT_RADIUS - EDGE_PADDING;
 const clamp = (v) => Math.max(-LIMIT, Math.min(LIMIT, v));
+
+// Здание привязывается к сетке: size — сторона в клетках, center — центр NxN блока
+const buildingSize = (size) => size * GRID_STEP;
+const snapToGrid = (world, size) => ({
+  x: (Math.floor(world.x / GRID_STEP) + size / 2) * GRID_STEP,
+  y: (Math.floor(world.y / GRID_STEP) + size / 2) * GRID_STEP
+});
 
 let nextUnitId = 1;
 let nextBuildingId = 1;
@@ -100,15 +107,36 @@ export default {
       { id: nextUnitId++, position: t( 4,  1), target: null, speed: UNIT_SPEED, screen: { x: 0, y: 0 } },
       { id: nextUnitId++, position: t( 6, -4), target: null, speed: UNIT_SPEED, screen: { x: 0, y: 0 } }
     ],
-    buildings: [
-      { id: 'b' + nextBuildingId++, position: t(-5, -3), size: BUILDING_SIZE },
-      { id: 'b' + nextBuildingId++, position: t( 3,  4), size: BUILDING_SIZE }
-    ]
+    buildings: []
   }),
 
   getters: {
     getUnitById: (state) => (id) => state.units.find((u) => u.id === id),
     getBuildings: (state) => state.buildings,
+
+    // Свободно ли место под здание размера size (клетки) с центром в world
+    canPlace: (state) => (world, size) => {
+      const c = snapToGrid(world, size);
+      const half = buildingSize(size) / 2;
+      const box = { left: c.x - half, right: c.x + half, top: c.y - half, bottom: c.y + half };
+
+      // Внутри карты
+      const limit = MAP_SIZE / 2;
+      if (box.left < -limit || box.right > limit || box.top < -limit || box.bottom > limit) return false;
+
+      // Не пересекается с другими зданиями
+      return !state.buildings.some((b) => {
+        const a = aabb(b);
+        return box.left < a.right && box.right > a.left && box.top < a.bottom && box.bottom > a.top;
+      });
+    },
+
+    // Призрак здания под курсором: привязка к сетке и признак допустимости
+    getGhost: (state, getters) => (world, type) => {
+      if (!world || !type) return null;
+      const c = snapToGrid(world, type.size);
+      return { ...c, size: buildingSize(type.size), valid: getters.canPlace(world, type.size) };
+    },
     // Id юнитов, чья экранная позиция попала в рамку выделения
     getUnitIdsByRect: (state) => (rect) => {
       if (!rect) return [];
@@ -176,6 +204,16 @@ export default {
     SET_SCREEN: (state, { id, screen }) => {
       const u = state.units.find((u) => u.id === id);
       if (u) u.screen = screen;
+    },
+
+    ADD_BUILDING: (state, { type, size, position }) => {
+      state.buildings.push({
+        id: 'b' + nextBuildingId++,
+        type,
+        position,
+        size: buildingSize(size),
+        screen: { x: 0, y: 0 }
+      });
     }
   },
 

@@ -14,19 +14,27 @@ export const UNIT_RADIUS = 14;
 export const UNIT_SPEED = 150;
 export const EDGE_PADDING = 8;
 
-export const BUILDING_SIZE = 2 * GRID_STEP;
+// Здания квадратные NxN: size — сторона в клетках сетки
+export const BUILDING_TYPES = [
+  { type: 'house',  label: 'Дом',      size: 1 },
+  { type: 'barrack', label: 'Казарма', size: 2 },
+  { type: 'fort',   label: 'Крепость', size: 3 }
+];
 
 // Типы событий, накопленных за кадр
 export const EVENT_TYPE = {
   SELECT_UNITS: 'SELECT_UNITS',
   MOVE_UNITS: 'MOVE_UNITS',
-  ZOOM_CAMERA: 'ZOOM_CAMERA'
+  ZOOM_CAMERA: 'ZOOM_CAMERA',
+  BUILD_BUILDING: 'BUILD_BUILDING'
 };
 
 // Слои отрисовки
 export const Z_INDEX = {
   SELECTION_RECT: 50,
-  CONTROLS_PANEL: 100
+  CONTROLS_PANEL: 100,
+  BUILD_PANEL: 100,
+  GHOST: 10
 };
 
 // Зум: шаг колеса и предела

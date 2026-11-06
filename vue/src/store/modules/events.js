@@ -54,12 +54,32 @@ export default {
 
         if (event.type === EVENT_TYPE.ZOOM_CAMERA) {
           commit('game/PUSH_ZOOM', event.payload, { root: true });
+          return;
+        }
+
+        if (event.type === EVENT_TYPE.BUILD_BUILDING) {
+          const { type, size, world } = event.payload;
+          if (!rootGetters['map/canPlace'](world, size)) return;
+          commit('map/ADD_BUILDING', {
+            type,
+            size,
+            position: rootGetters['map/getGhost'](world, { size })
+          }, { root: true });
         }
       });
     },
 
+    // Наведение курсора: нужно для призрака здания в режиме строительства
+    updateCursor: ({ commit }, point) => {
+      commit('game/SET_CURSOR', point, { root: true });
+    },
+
     // События ввода: клавиши камеры
     keyDown: ({ commit }, key) => {
+      if (key === 'Escape') {
+        commit('game/SET_BUILD_TYPE', null, { root: true });
+        return;
+      }
       commit('game/SET_KEY', { key, pressed: true }, { root: true });
     },
 
@@ -79,6 +99,13 @@ export default {
     // Отпускание ЛКМ: рамка выделяет группу, клик — снимает выделение
     endDrag: ({ rootState, rootGetters, dispatch }) => {
       if (!rootState.game.drag.start) return;
+
+      // Режим строительства: клик ставит здание вместо выделения
+      if (rootState.game.buildType) {
+        dispatch('placeBuilding', rootState.game.drag.current);
+        dispatch('game/endDrag', null, { root: true });
+        return;
+      }
 
       const r = rootGetters['game/getSelectionRect'];
       dispatch('pushEvent', {
@@ -105,8 +132,34 @@ export default {
       });
     },
 
-    // События ввода: ПКМ — команда движения выделенным юнитам
-    moveSelected: ({ rootState, rootGetters, dispatch }, { cursor }) => {
+    // Строительство: выбран тип здания в панели, повторный выбор отменяет режим
+    pickBuilding: ({ rootState, commit }, type) => {
+      const next = rootState.game.buildType === type ? null : type;
+      commit('game/SET_BUILD_TYPE', next, { root: true });
+    },
+
+    // Постановка здания по клику ЛКМ: событие применяется при пересчёте кадра
+    placeBuilding: ({ rootState, rootGetters, commit, dispatch }, cursor) => {
+      const type = rootState.game.buildType;
+      if (!type) return;
+
+      const world = rootGetters['game/getWorldByScreen'](cursor);
+      if (!rootGetters['map/canPlace'](world, type.size)) return;
+
+      dispatch('pushEvent', {
+        type: EVENT_TYPE.BUILD_BUILDING,
+        payload: { type: type.type, size: type.size, world }
+      });
+      commit('game/SET_BUILD_TYPE', null, { root: true });
+    },
+
+    // События ввода: ПКМ — команда движения выделенным юнитам (в режиме строительства — отмена)
+    moveSelected: ({ rootState, rootGetters, commit, dispatch }, { cursor }) => {
+      if (rootState.game.buildType) {
+        commit('game/SET_BUILD_TYPE', null, { root: true });
+        return;
+      }
+
       const unitIds = rootState.game.selectedUnitIds;
       if (unitIds.length === 0) return;
 

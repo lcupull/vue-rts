@@ -3,18 +3,25 @@
     <div class="game-world__outer-ground"></div>
     <div class="game-world__ground" :style="groundStyle"></div>
 
-    <BuildingItem
-      v-for="b in buildings"
-      :key="b.id"
-      :building="b"
-    />
-
     <div
       v-for="unit in unitsWithTarget"
       :key="'p' + unit.id"
       class="game-world__path-line"
       :style="pathStyle(unit)"
     ></div>
+
+    <div
+      v-if="ghost"
+      class="game-world__ghost"
+      :class="{ 'game-world__ghost--invalid': !ghost.valid }"
+      :style="ghostStyle"
+    ></div>
+
+    <BuildingItem
+      v-for="b in buildings"
+      :key="b.id"
+      :building="b"
+    />
 
     <UnitItem
       v-for="unit in units"
@@ -30,7 +37,7 @@ import { useStore } from 'vuex';
 import UnitItem from './UnitItem.vue';
 import BuildingItem from './BuildingItem.vue';
 import {
-  GRID_STEP, MAP_SIZE, ISO_ROTATION_DEG, ISO_SCALE_Y
+  GRID_STEP, MAP_SIZE, ISO_ROTATION_DEG, ISO_SCALE_Y, Z_INDEX
 } from '@/config/game';
 
 const store = useStore();
@@ -61,6 +68,25 @@ const groundStyle = computed(() => ({
 }));
 
 const pathStyle = computed(() => store.getters['map/getPathStyle']);
+
+// Призрак здания под курсором в режиме строительства
+const ghost = computed(() => {
+  const type = store.state.game.buildType;
+  if (!type) return null;
+  return store.getters['map/getGhost'](store.getters['game/getCursorWorld'], type);
+});
+
+const ghostStyle = computed(() => {
+  const g = ghost.value;
+  if (!g) return {};
+  return {
+    left: `${g.x - g.size / 2}px`,
+    top: `${g.y - g.size / 2}px`,
+    width: `${g.size}px`,
+    height: `${g.size}px`,
+    zIndex: Z_INDEX.GHOST
+  };
+});
 </script>
 
 <style scoped lang="scss">
@@ -100,5 +126,18 @@ const pathStyle = computed(() => store.getters['map/getPathStyle']);
   height: 0;
   border-top: 2px dashed rgba(255, 220, 80, 0.65);
   pointer-events: none;
+}
+
+.game-world__ghost {
+  position: absolute;
+  background: rgba(110, 220, 130, 0.35);
+  border: 2px solid rgba(80, 200, 100, 0.9);
+  box-sizing: border-box;
+  pointer-events: none;
+
+  &.game-world__ghost--invalid {
+    background: rgba(230, 90, 90, 0.35);
+    border-color: rgba(220, 70, 70, 0.9);
+  }
 }
 </style>

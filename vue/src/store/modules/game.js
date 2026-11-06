@@ -34,6 +34,9 @@ export default {
     drag: { start: null, current: null, dragged: false },
     // Очередь зума колесом за кадр: { cursor, worldBefore, deltaY }
     zoomQueue: [],
+    // Строительство: выбранный тип здания и последняя экранная точка курсора
+    buildType: null,
+    cursor: null,
     // Последний пересчитанный кадр
     frame: { dt: 0 }
   }),
@@ -53,6 +56,10 @@ export default {
     // Мировые координаты по экранной точке — только чтение результата
     getWorldByScreen: (state) => (screen) => {
       return screenToWorld(screen.x, screen.y, state.viewport, state.camera);
+    },
+    // Мировая точка под курсором — для призрака здания
+    getCursorWorld: (state) => {
+      return state.cursor ? screenToWorld(state.cursor.x, state.cursor.y, state.viewport, state.camera) : null;
     }
   },
   mutations: {
@@ -64,6 +71,8 @@ export default {
     },
     SET_ZOOM: (state, zoom) => { state.camera.zoom = zoom; },
     SET_SELECTED: (state, ids) => { state.selectedUnitIds = ids; },
+    SET_BUILD_TYPE: (state, type) => { state.buildType = type; },
+    SET_CURSOR: (state, point) => { state.cursor = point; },
 
     SET_KEY: (state, { key, pressed }) => {
       if (key in state.keys) state.keys[key] = pressed;
