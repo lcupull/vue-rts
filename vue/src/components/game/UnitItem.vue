@@ -1,9 +1,9 @@
 <template>
   <div
     class="unit"
-    :class="{ selected: isSelected }"
+    :class="{ 'unit--selected': isSelected }"
     :style="style"
-    @click.stop="onClick"
+    @click.stop="() => onClick()"
   ></div>
 </template>
 
@@ -28,7 +28,7 @@ const style = computed(() => ({
   marginTop: `${-UNIT_RADIUS}px`
 }));
 
-const onClick = () => store.dispatch('game/selectUnits', [props.unit.id]);
+const onClick = () => store.dispatch('events/clickUnit', props.unit.id);
 </script>
 
 <style scoped lang="scss">
@@ -40,7 +40,7 @@ const onClick = () => store.dispatch('game/selectUnits', [props.unit.id]);
   cursor: pointer;
   transition: transform 0.08s;
 
-  &.selected {
+  &.unit--selected {
     background: #ffe070;
     border-color: #8a6010;
     box-shadow: 0 0 0 2px #8a6010;

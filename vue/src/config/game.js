@@ -15,3 +15,22 @@ export const UNIT_SPEED = 150;
 export const EDGE_PADDING = 8;
 
 export const BUILDING_SIZE = 2 * GRID_STEP;
+
+// Типы событий, накопленных за кадр
+export const EVENT_TYPE = {
+  SELECT_UNITS: 'SELECT_UNITS',
+  MOVE_UNITS: 'MOVE_UNITS',
+  ZOOM_CAMERA: 'ZOOM_CAMERA'
+};
+
+// Слои отрисовки
+export const Z_INDEX = {
+  SELECTION_RECT: 50,
+  CONTROLS_PANEL: 100
+};
+
+// Зум: шаг колеса и предела
+export const ZOOM_STEP = 1.15;
+
+// Порог в пикселях, после которого зажатая ЛКМ считается перетаскиванием
+export const DRAG_THRESHOLD = 4;

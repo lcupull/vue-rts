@@ -1,10 +1,10 @@
 <template>
-  <div class="unit-sprite" :style="style" @click="onClick">
-    <div class="unit-shadow"></div>
-    <div class="unit-body" :class="{ selected: isSelected }">
-      <div class="face face-top"></div>
-      <div class="face face-left"></div>
-      <div class="face face-right"></div>
+  <div class="unit-sprite" :style="style" @click="() => onClick($event)">
+    <div class="unit-sprite__shadow"></div>
+    <div class="unit-sprite__body" :class="{ 'unit-sprite__body--selected': isSelected }">
+      <div class="unit-sprite__face unit-sprite__face--top"></div>
+      <div class="unit-sprite__face unit-sprite__face--left"></div>
+      <div class="unit-sprite__face unit-sprite__face--right"></div>
     </div>
   </div>
 </template>
@@ -27,7 +27,7 @@ const style = computed(() => {
 
 const onClick = (event) => {
   event.stopPropagation();
-  store.dispatch('game/selectUnits', [props.unit.id]);
+  store.dispatch('events/clickUnit', props.unit.id);
 };
 </script>
 
@@ -43,7 +43,7 @@ const onClick = (event) => {
 }
 
 /* Тень-эллипс под юнитом */
-.unit-shadow {
+.unit-sprite__shadow {
   position: absolute;
   left: 50%;
   bottom: 0;
@@ -56,7 +56,7 @@ const onClick = (event) => {
 }
 
 /* Тело: контейнер 40x40 — общий bounding box для трёх граней */
-.unit-body {
+.unit-sprite__body {
   position: absolute;
   left: 50%;
   bottom: 8px;
@@ -67,34 +67,36 @@ const onClick = (event) => {
 }
 
 /* Верхняя грань — ромб 40x40 (по высоте ромба = 20px) */
-.face {
+.unit-sprite__face {
   position: absolute;
   inset: 0;
 }
 
-.face-top {
+.unit-sprite__face--top {
   background: #e89c7c;
   clip-path: polygon(50% 0, 100% 25%, 50% 50%, 0 25%);
 }
 
-.face-left {
+.unit-sprite__face--left {
   background: #8a3018;
   clip-path: polygon(0 25%, 50% 50%, 50% 100%, 0 75%);
 }
 
-.face-right {
+.unit-sprite__face--right {
   background: #b04a28;
   clip-path: polygon(50% 50%, 100% 25%, 100% 75%, 50% 100%);
 }
 
 /* Выделение — светлая обводка поверх всех граней */
-.unit-body.selected {
-  .face-top    { background: #ffd870; }
-  .face-left   { background: #b08020; }
-  .face-right  { background: #d0a040; }
+.unit-sprite__body--selected {
+  .unit-sprite__face--top    { background: #ffd870; }
+  .unit-sprite__face--left   { background: #b08020; }
+  .unit-sprite__face--right  { background: #d0a040; }
 }
 
-.unit-sprite:hover .unit-body {
-  transform: translateY(-2px);
+.unit-sprite {
+  &:hover .unit-sprite__body {
+    transform: translateY(-2px);
+  }
 }
 </style>

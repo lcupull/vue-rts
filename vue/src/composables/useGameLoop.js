@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted } from 'vue';
 
-export function useGameLoop(callback) {
+export const useGameLoop = (callback) => {
   let rafId = null;
   let lastTime = 0;
 
@@ -13,4 +13,4 @@ export function useGameLoop(callback) {
 
   onMounted(() => { rafId = requestAnimationFrame(loop); });
   onUnmounted(() => { if (rafId) cancelAnimationFrame(rafId); });
-}
+};

@@ -1,7 +1,7 @@
 <template>
   <div class="game-world" :style="worldStyle">
-    <div class="outer-ground"></div>
-    <div class="game-ground" :style="groundStyle"></div>
+    <div class="game-world__outer-ground"></div>
+    <div class="game-world__ground" :style="groundStyle"></div>
 
     <BuildingItem
       v-for="b in buildings"
@@ -12,7 +12,7 @@
     <div
       v-for="unit in unitsWithTarget"
       :key="'p' + unit.id"
-      class="path-line"
+      class="game-world__path-line"
       :style="pathStyle(unit)"
     ></div>
 
@@ -34,9 +34,9 @@ import {
 } from '@/config/game';
 
 const store = useStore();
-const units = computed(() => store.state.units.units);
-const buildings = computed(() => store.state.units.buildings);
-const unitsWithTarget = computed(() => units.value.filter(u => u.target));
+const units = computed(() => store.state.map.units);
+const buildings = computed(() => store.state.map.buildings);
+const unitsWithTarget = computed(() => units.value.filter((u) => u.target));
 
 const worldStyle = computed(() => {
   const { viewport, camera } = store.state.game;
@@ -60,19 +60,7 @@ const groundStyle = computed(() => ({
   backgroundSize: `${GRID_STEP}px ${GRID_STEP}px`
 }));
 
-const pathStyle = (unit) => {
-  const dx = unit.target.x - unit.position.x;
-  const dy = unit.target.y - unit.position.y;
-  const len = Math.hypot(dx, dy);
-  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-  return {
-    left: `${unit.position.x}px`,
-    top: `${unit.position.y}px`,
-    width: `${len}px`,
-    transform: `rotate(${angle}deg)`,
-    transformOrigin: '0 50%'
-  };
-};
+const pathStyle = computed(() => store.getters['map/getPathStyle']);
 </script>
 
 <style scoped lang="scss">
@@ -86,7 +74,7 @@ const pathStyle = (unit) => {
   will-change: transform;
 }
 
-.outer-ground {
+.game-world__outer-ground {
   position: absolute;
   left: -20000px;
   top: -20000px;
@@ -96,7 +84,7 @@ const pathStyle = (unit) => {
   pointer-events: none;
 }
 
-.game-ground {
+.game-world__ground {
   position: absolute;
   background-color: #3a3a3a;
   background-image:
@@ -107,7 +95,7 @@ const pathStyle = (unit) => {
   pointer-events: none;
 }
 
-.path-line {
+.game-world__path-line {
   position: absolute;
   height: 0;
   border-top: 2px dashed rgba(255, 220, 80, 0.65);

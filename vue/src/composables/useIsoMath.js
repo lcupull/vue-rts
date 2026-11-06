@@ -4,7 +4,7 @@ const ISO_RAD = ISO_ROTATION_DEG * Math.PI / 180;
 const ISO_COS = Math.cos(ISO_RAD);
 const ISO_SIN = Math.sin(ISO_RAD);
 
-export function useIsoMath() {
+export const useIsoMath = () => {
   const screenToWorld = (screenX, screenY, viewport, camera) => {
     const offsetX = screenX - viewport.width / 2;
     const offsetY = screenY - viewport.height / 2;
