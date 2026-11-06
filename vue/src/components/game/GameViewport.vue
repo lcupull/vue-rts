@@ -11,7 +11,31 @@
   >
     <GameWorld />
 
+    <!-- Хпбары: отдельный слой в экранных координатах, вне изометрии мира.
+         Видны только у объектов в фокусе — выделенных юнитов и выбранного здания -->
+    <HealthBar
+      v-for="unit in focusedUnits"
+      :key="'hp' + unit.id"
+      :hp="unit.hp"
+      :max-hp="unit.maxHp"
+      :screen="unit.screen"
+      :width="HEALTH_BAR.unitWidth"
+      :offset="HEALTH_BAR.unitOffset"
+      :style="{ zIndex: Z_INDEX.HEALTH_BAR }"
+    />
+    <HealthBar
+      v-for="b in focusedBuildings"
+      :key="'hpb' + b.id"
+      :hp="b.hp"
+      :max-hp="b.maxHp"
+      :screen="b.screen"
+      :width="b.size"
+      :offset="b.size / 4 + HEALTH_BAR.buildingOffset"
+      :style="{ zIndex: Z_INDEX.HEALTH_BAR }"
+    />
+
     <BuildPanel />
+    <StatsPanel />
 
     <!-- Рамка выделения — рисуется поверх всего в экранных координатах -->
     <div v-if="selectionRect" class="game-viewport__selection" :style="selectionStyle"></div>
@@ -31,8 +55,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useStore } from 'vuex';
 import GameWorld from './GameWorld.vue';
 import BuildPanel from './BuildPanel.vue';
+import StatsPanel from './StatsPanel.vue';
+import HealthBar from './HealthBar.vue';
 import { useGameLoop } from '@/composables/useGameLoop';
-import { Z_INDEX } from '@/config/game';
+import { Z_INDEX, HEALTH_BAR } from '@/config/game';
 
 const store = useStore();
 const viewportRef = ref(null);
@@ -80,6 +106,27 @@ const onWheel = (event) => {
 };
 
 // Отрисовка действительности из стора
+const units = computed(() => store.state.map.units);
+const buildings = computed(() => store.state.map.buildings);
+// Игровое время кадра — зависимость для автоскрытия хпбара после урона
+const gameFrame = computed(() => store.state.game.frame);
+
+// Хпбар виден, если объект в фокусе (выделен) или недавно получал урон
+const isBarVisible = (object, isFocused) => {
+  if (isFocused) return true;
+  if (object.damagedAt === null) return false;
+  return (gameFrame.value.time - object.damagedAt) * 1000 < HEALTH_BAR.damageVisibleMs;
+};
+
+const focusedUnits = computed(() => {
+  const ids = store.state.game.selectedUnitIds;
+  return units.value.filter((u) => isBarVisible(u, ids.includes(u.id)));
+});
+const focusedBuildings = computed(() => {
+  const id = store.state.game.selectedBuildingId;
+  return buildings.value.filter((b) => isBarVisible(b, b.id === id));
+});
+
 const selectionRect = computed(() => store.getters['game/getSelectionRect']);
 const selectionStyle = computed(() => ({
   left: `${selectionRect.value.x1}px`,

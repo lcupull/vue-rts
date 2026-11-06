@@ -1,5 +1,5 @@
 import {
-  UNIT_SPEED, UNIT_RADIUS, MAP_SIZE, EDGE_PADDING, GRID_STEP
+  UNIT_STATS, UNIT_RADIUS, MAP_SIZE, EDGE_PADDING, GRID_STEP, BUILDING_TYPES
 } from '@/config/game';
 import { useIsoMath } from '@/composables/useIsoMath';
 
@@ -8,16 +8,29 @@ const { worldToScreen } = useIsoMath();
 const LIMIT = MAP_SIZE / 2 - UNIT_RADIUS - EDGE_PADDING;
 const clamp = (v) => Math.max(-LIMIT, Math.min(LIMIT, v));
 
+const buildingType = (type) => BUILDING_TYPES.find((b) => b.type === type);
+
+let nextUnitId = 1;
+let nextBuildingId = 1;
+
+// Юнит с характеристиками: hp/maxHp для здоровья, strength — сила удара,
+// damagedAt — игровое время последнего урона (для показа хпбара)
+const unit = (tileX, tileY) => ({
+  id: nextUnitId++,
+  position: { x: tileX * GRID_STEP, y: tileY * GRID_STEP },
+  target: null,
+  ...UNIT_STATS,
+  maxHp: UNIT_STATS.hp,
+  damagedAt: null,
+  screen: { x: 0, y: 0 }
+});
+
 // Здание привязывается к сетке: size — сторона в клетках, center — центр NxN блока
 const buildingSize = (size) => size * GRID_STEP;
 const snapToGrid = (world, size) => ({
   x: (Math.floor(world.x / GRID_STEP) + size / 2) * GRID_STEP,
   y: (Math.floor(world.y / GRID_STEP) + size / 2) * GRID_STEP
 });
-
-let nextUnitId = 1;
-let nextBuildingId = 1;
-const t = (tileX, tileY) => ({ x: tileX * GRID_STEP, y: tileY * GRID_STEP });
 
 // Формация: слоты вокруг цели
 const computeFormationSlots = (center, count) => {
@@ -102,17 +115,34 @@ export default {
   namespaced: true,
 
   state: () => ({
-    units: [
-      { id: nextUnitId++, position: t(-2,  3), target: null, speed: UNIT_SPEED, screen: { x: 0, y: 0 } },
-      { id: nextUnitId++, position: t( 4,  1), target: null, speed: UNIT_SPEED, screen: { x: 0, y: 0 } },
-      { id: nextUnitId++, position: t( 6, -4), target: null, speed: UNIT_SPEED, screen: { x: 0, y: 0 } }
-    ],
+    units: [unit(-2, 3), unit(4, 1), unit(6, -4)],
     buildings: []
   }),
 
   getters: {
     getUnitById: (state) => (id) => state.units.find((u) => u.id === id),
     getBuildings: (state) => state.buildings,
+
+    // Характеристики выделенных юнитов: по группе строк на каждого юнита
+    getStats: (state) => (unitIds) => {
+      const units = state.units.filter((u) => unitIds.includes(u.id));
+      if (units.length === 0) return [];
+      return units.map((u) => ([
+        { label: 'Здоровье', value: `${u.hp} / ${u.maxHp}` },
+        { label: 'Сила', value: u.strength },
+        { label: 'Скорость', value: u.speed },
+        { label: 'Скор. атаки', value: `${u.attackSpeed}/с` }
+      ]));
+    },
+
+    // Характеристики здания
+    getBuildingStats: (state) => (buildingId) => {
+      const b = state.buildings.find((x) => x.id === buildingId);
+      if (!b) return null;
+      return [
+        { label: 'Здоровье', value: `${b.hp} / ${b.maxHp}` }
+      ];
+    },
 
     // Свободно ли место под здание размера size (клетки) с центром в world
     canPlace: (state) => (world, size) => {
@@ -206,14 +236,31 @@ export default {
       if (u) u.screen = screen;
     },
 
+    SET_BUILDING_SCREEN: (state, { id, screen }) => {
+      const b = state.buildings.find((b) => b.id === id);
+      if (b) b.screen = screen;
+    },
+
     ADD_BUILDING: (state, { type, size, position }) => {
+      const { hp } = buildingType(type);
       state.buildings.push({
         id: 'b' + nextBuildingId++,
         type,
         position,
         size: buildingSize(size),
+        hp,
+        maxHp: hp,
+        damagedAt: null,
         screen: { x: 0, y: 0 }
       });
+    },
+
+    // Урон юниту или зданию: фиксируем время удара, чтобы хпбар показался в реальном времени
+    APPLY_DAMAGE: (state, { id, amount, time }) => {
+      const target = state.units.find((u) => u.id === id) || state.buildings.find((b) => b.id === id);
+      if (!target) return;
+      target.hp = Math.max(0, target.hp - amount);
+      target.damagedAt = time;
     }
   },
 
@@ -223,6 +270,9 @@ export default {
       const { viewport, camera } = rootState.game;
       state.units.forEach((u) => {
         commit('SET_SCREEN', { id: u.id, screen: worldToScreen(u.position, viewport, camera) });
+      });
+      state.buildings.forEach((b) => {
+        commit('SET_BUILDING_SCREEN', { id: b.id, screen: worldToScreen(b.position, viewport, camera) });
       });
     },
 

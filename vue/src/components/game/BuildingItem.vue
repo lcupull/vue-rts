@@ -1,13 +1,22 @@
 <template>
-  <div class="building" :style="style"></div>
+  <div
+    class="building"
+    :class="{ 'building--selected': isSelected }"
+    :style="style"
+    @click.stop="() => onClick()"
+  ></div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import { useStore } from 'vuex';
 
 const props = defineProps({
   building: { type: Object, required: true }
 });
+
+const store = useStore();
+const isSelected = computed(() => store.getters['game/isBuildingSelected'](props.building.id));
 
 const style = computed(() => {
   const b = props.building;
@@ -18,6 +27,8 @@ const style = computed(() => {
     height: `${b.size}px`
   };
 });
+
+const onClick = () => store.dispatch('events/clickBuilding', props.building.id);
 </script>
 
 <style scoped lang="scss">
@@ -25,6 +36,12 @@ const style = computed(() => {
   position: absolute;
   background: #d8d8d8;
   border: 1px solid #1a1a1a;
-  pointer-events: none;
+  cursor: pointer;
+
+  &.building--selected {
+    background: #ffe070;
+    border-color: #8a6010;
+    box-shadow: 0 0 0 2px #8a6010;
+  }
 }
 </style>

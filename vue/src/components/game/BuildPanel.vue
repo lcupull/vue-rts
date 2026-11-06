@@ -18,7 +18,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useStore } from 'vuex';
-import { BUILDING_TYPES, Z_INDEX } from '@/config/game';
+import { BUILDING_TYPES, BUILD_ICON_TILE, Z_INDEX } from '@/config/game';
 
 const store = useStore();
 const types = BUILDING_TYPES;
@@ -28,7 +28,7 @@ const isActive = (type) => store.state.game.buildType === type;
 
 // Иконка — квадрат NxN клеток в масштабе панели
 const itemStyle = (type) => ({
-  '--icon-size': `${type.size * 12}px`
+  '--icon-size': `${type.size * BUILD_ICON_TILE}px`
 });
 
 const onPick = (type) => store.dispatch('events/pickBuilding', type);

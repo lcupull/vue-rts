@@ -42,6 +42,11 @@ export default {
           return;
         }
 
+        if (event.type === EVENT_TYPE.SELECT_BUILDING) {
+          commit('game/SET_SELECTED_BUILDING', event.payload.buildingId, { root: true });
+          return;
+        }
+
         if (event.type === EVENT_TYPE.MOVE_UNITS) {
           const { unitIds, target } = event.payload;
           // Формация считается геттером: dispatch вернул бы Promise
@@ -112,6 +117,11 @@ export default {
         type: EVENT_TYPE.SELECT_UNITS,
         payload: { unitIds: rootGetters['map/getUnitIdsByRect'](r) }
       });
+      // Клик по земле снимает и выделение здания
+      dispatch('pushEvent', {
+        type: EVENT_TYPE.SELECT_BUILDING,
+        payload: { buildingId: null }
+      });
       dispatch('game/endDrag', null, { root: true });
     },
 
@@ -129,6 +139,14 @@ export default {
       dispatch('pushEvent', {
         type: EVENT_TYPE.SELECT_UNITS,
         payload: { unitIds: [unitId] }
+      });
+    },
+
+    // События ввода: клик ЛКМ по зданию — показываем его характеристики
+    clickBuilding: ({ dispatch }, buildingId) => {
+      dispatch('pushEvent', {
+        type: EVENT_TYPE.SELECT_BUILDING,
+        payload: { buildingId }
       });
     },
 

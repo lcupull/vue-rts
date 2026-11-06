@@ -14,19 +14,41 @@ export const UNIT_RADIUS = 14;
 export const UNIT_SPEED = 150;
 export const EDGE_PADDING = 8;
 
-// Здания квадратные NxN: size — сторона в клетках сетки
+// Характеристики юнита: здоровье, сила, скорость, скорость атаки (ударов в секунду)
+export const UNIT_STATS = {
+  hp: 100,
+  strength: 10,
+  speed: UNIT_SPEED,
+  attackSpeed: 1
+};
+
+// Здания квадратные NxN: size — сторона в клетках сетки, hp — очки жизни
 export const BUILDING_TYPES = [
-  { type: 'house',  label: 'Дом',      size: 1 },
-  { type: 'barrack', label: 'Казарма', size: 2 },
-  { type: 'fort',   label: 'Крепость', size: 3 }
+  { type: 'house',   label: 'Дом',      size: 1, hp: 200 },
+  { type: 'barrack', label: 'Казарма',  size: 2, hp: 400 },
+  { type: 'fort',    label: 'Крепость', size: 3, hp: 800 }
 ];
+
+// Полоска здоровья: толщина на экране и отступ над объектом
+export const HEALTH_BAR = {
+  height: 6,
+  unitWidth: 42,
+  unitOffset: 30,
+  buildingOffset: 16,
+  // Сколько миллисекунд полоска видна после полученного урона
+  damageVisibleMs: 3000
+};
+
+// Иконка здания в панели стройки: пикселей на клетку
+export const BUILD_ICON_TILE = 12;
 
 // Типы событий, накопленных за кадр
 export const EVENT_TYPE = {
   SELECT_UNITS: 'SELECT_UNITS',
   MOVE_UNITS: 'MOVE_UNITS',
   ZOOM_CAMERA: 'ZOOM_CAMERA',
-  BUILD_BUILDING: 'BUILD_BUILDING'
+  BUILD_BUILDING: 'BUILD_BUILDING',
+  SELECT_BUILDING: 'SELECT_BUILDING'
 };
 
 // Слои отрисовки
@@ -34,6 +56,8 @@ export const Z_INDEX = {
   SELECTION_RECT: 50,
   CONTROLS_PANEL: 100,
   BUILD_PANEL: 100,
+  STATS_PANEL: 100,
+  HEALTH_BAR: 20,
   GHOST: 10
 };
 

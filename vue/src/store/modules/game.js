@@ -25,6 +25,8 @@ export default {
     camera: { x: 0, y: 0, zoom: DEFAULT_ZOOM },
     viewport: { width: 0, height: 0 },
     selectedUnitIds: [],
+    // Выбранное здание (клик по постройке)
+    selectedBuildingId: null,
     // Зажатые клавиши камеры
     keys: {
       w: false, a: false, s: false, d: false,
@@ -37,11 +39,12 @@ export default {
     // Строительство: выбранный тип здания и последняя экранная точка курсора
     buildType: null,
     cursor: null,
-    // Последний пересчитанный кадр
-    frame: { dt: 0 }
+    // Последний пересчитанный кадр: dt — длительность, time — накопленное игровое время
+    frame: { dt: 0, time: 0 }
   }),
   getters: {
     isUnitSelected: (state) => (id) => state.selectedUnitIds.includes(id),
+    isBuildingSelected: (state) => (id) => state.selectedBuildingId === id,
     // Рамка выделения в экранных координатах
     getSelectionRect: (state) => {
       const { start, current, dragged } = state.drag;
@@ -70,7 +73,14 @@ export default {
       state.camera.y += offset.y;
     },
     SET_ZOOM: (state, zoom) => { state.camera.zoom = zoom; },
-    SET_SELECTED: (state, ids) => { state.selectedUnitIds = ids; },
+    SET_SELECTED: (state, ids) => {
+      state.selectedUnitIds = ids;
+      if (ids.length) state.selectedBuildingId = null;
+    },
+    SET_SELECTED_BUILDING: (state, id) => {
+      state.selectedBuildingId = id;
+      if (id) state.selectedUnitIds = [];
+    },
     SET_BUILD_TYPE: (state, type) => { state.buildType = type; },
     SET_CURSOR: (state, point) => { state.cursor = point; },
 
@@ -96,7 +106,9 @@ export default {
       state.drag = { start: null, current: null, dragged: false };
     },
 
-    SET_FRAME: (state, dt) => { state.frame = { dt }; },
+    SET_FRAME: (state, dt) => {
+      state.frame = { dt, time: state.frame.time + dt };
+    },
 
     PUSH_ZOOM: (state, zoom) => { state.zoomQueue.push(zoom); }
   },
