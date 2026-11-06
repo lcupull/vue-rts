@@ -63,11 +63,12 @@ export default {
         }
 
         if (event.type === EVENT_TYPE.BUILD_BUILDING) {
-          const { type, size, world } = event.payload;
+          const { type, size, world, group } = event.payload;
           if (!rootGetters['map/canPlace'](world, size)) return;
           commit('map/ADD_BUILDING', {
             type,
             size,
+            group,
             position: rootGetters['map/getGhost'](world, { size })
           }, { root: true });
         }
@@ -150,10 +151,15 @@ export default {
       });
     },
 
-    // Строительство: выбран тип здания в панели, повторный выбор отменяет режим
+    // Строительство: выбранный тип здания в панели, повторный выбор отменяет режим
     pickBuilding: ({ rootState, commit }, type) => {
       const next = rootState.game.buildType === type ? null : type;
       commit('game/SET_BUILD_TYPE', next, { root: true });
+    },
+
+    // Группа, от имени которой ставим здания (свои или вражеские)
+    setBuildGroup: ({ commit }, group) => {
+      commit('game/SET_BUILD_GROUP', group, { root: true });
     },
 
     // Постановка здания по клику ЛКМ: событие применяется при пересчёте кадра
@@ -166,7 +172,7 @@ export default {
 
       dispatch('pushEvent', {
         type: EVENT_TYPE.BUILD_BUILDING,
-        payload: { type: type.type, size: type.size, world }
+        payload: { type: type.type, size: type.size, world, group: rootState.game.buildGroup }
       });
       commit('game/SET_BUILD_TYPE', null, { root: true });
     },

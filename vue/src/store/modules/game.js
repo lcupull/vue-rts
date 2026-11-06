@@ -1,6 +1,6 @@
 import {
   DEFAULT_ZOOM, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, CAMERA_SPEED,
-  ISO_ROTATION_DEG, ISO_SCALE_Y
+  ISO_ROTATION_DEG, ISO_SCALE_Y, GROUP_LIST
 } from '@/config/game';
 import { useIsoMath } from '@/composables/useIsoMath';
 
@@ -36,8 +36,9 @@ export default {
     drag: { start: null, current: null, dragged: false },
     // Очередь зума колесом за кадр: { cursor, worldBefore, deltaY }
     zoomQueue: [],
-    // Строительство: выбранный тип здания и последняя экранная точка курсора
+    // Строительство: выбранный тип здания, группа постройки и последняя экранная точка курсора
     buildType: null,
+    buildGroup: GROUP_LIST[0].id,
     cursor: null,
     // Последний пересчитанный кадр: dt — длительность, time — накопленное игровое время
     frame: { dt: 0, time: 0 }
@@ -82,6 +83,7 @@ export default {
       if (id) state.selectedUnitIds = [];
     },
     SET_BUILD_TYPE: (state, type) => { state.buildType = type; },
+    SET_BUILD_GROUP: (state, group) => { state.buildGroup = group; },
     SET_CURSOR: (state, point) => { state.cursor = point; },
 
     SET_KEY: (state, { key, pressed }) => {

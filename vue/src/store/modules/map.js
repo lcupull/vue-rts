@@ -1,5 +1,5 @@
 import {
-  UNIT_STATS, UNIT_RADIUS, MAP_SIZE, EDGE_PADDING, GRID_STEP, BUILDING_TYPES
+  UNIT_STATS, UNIT_RADIUS, MAP_SIZE, EDGE_PADDING, GRID_STEP, BUILDING_TYPES, groupById
 } from '@/config/game';
 import { useIsoMath } from '@/composables/useIsoMath';
 
@@ -14,11 +14,13 @@ let nextUnitId = 1;
 let nextBuildingId = 1;
 
 // Юнит с характеристиками: hp/maxHp для здоровья, strength — сила удара,
-// damagedAt — игровое время последнего урона (для показа хпбара)
-const unit = (tileX, tileY) => ({
+// damagedAt — игровое время последнего урона (для показа хпбара),
+// group — к какой группе относится объект
+const unit = (tileX, tileY, group = 'group1') => ({
   id: nextUnitId++,
   position: { x: tileX * GRID_STEP, y: tileY * GRID_STEP },
   target: null,
+  group,
   ...UNIT_STATS,
   maxHp: UNIT_STATS.hp,
   damagedAt: null,
@@ -115,7 +117,12 @@ export default {
   namespaced: true,
 
   state: () => ({
-    units: [unit(-2, 3), unit(4, 1), unit(6, -4)],
+    // Свои юниты (group1) и две вражеские группы
+    units: [
+      ...[[-2, 3], [4, 1], [6, -4]].map(([x, y]) => unit(x, y, 'group1')),
+      ...[[-8, -6], [-7, -5], [-9, -5]].map(([x, y]) => unit(x, y, 'group2')),
+      ...[[8, 6], [9, 5], [7, 7], [8, 7]].map(([x, y]) => unit(x, y, 'group3'))
+    ],
     buildings: []
   }),
 
@@ -128,6 +135,7 @@ export default {
       const units = state.units.filter((u) => unitIds.includes(u.id));
       if (units.length === 0) return [];
       return units.map((u) => ([
+        { label: 'Группа', value: groupById(u.group).label },
         { label: 'Здоровье', value: `${u.hp} / ${u.maxHp}` },
         { label: 'Сила', value: u.strength },
         { label: 'Скорость', value: u.speed },
@@ -140,6 +148,7 @@ export default {
       const b = state.buildings.find((x) => x.id === buildingId);
       if (!b) return null;
       return [
+        { label: 'Группа', value: groupById(b.group).label },
         { label: 'Здоровье', value: `${b.hp} / ${b.maxHp}` }
       ];
     },
@@ -241,12 +250,13 @@ export default {
       if (b) b.screen = screen;
     },
 
-    ADD_BUILDING: (state, { type, size, position }) => {
+    ADD_BUILDING: (state, { type, size, position, group = 'group1' }) => {
       const { hp } = buildingType(type);
       state.buildings.push({
         id: 'b' + nextBuildingId++,
         type,
         position,
+        group,
         size: buildingSize(size),
         hp,
         maxHp: hp,

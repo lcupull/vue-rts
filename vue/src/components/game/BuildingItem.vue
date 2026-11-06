@@ -10,6 +10,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useStore } from 'vuex';
+import { groupById } from '@/config/game';
 
 const props = defineProps({
   building: { type: Object, required: true }
@@ -24,7 +25,8 @@ const style = computed(() => {
     left: `${b.position.x - b.size / 2}px`,
     top:  `${b.position.y - b.size / 2}px`,
     width:  `${b.size}px`,
-    height: `${b.size}px`
+    height: `${b.size}px`,
+    background: groupById(b.group).color
   };
 });
 
@@ -34,12 +36,10 @@ const onClick = () => store.dispatch('events/clickBuilding', props.building.id);
 <style scoped lang="scss">
 .building {
   position: absolute;
-  background: #d8d8d8;
   border: 1px solid #1a1a1a;
   cursor: pointer;
 
   &.building--selected {
-    background: #ffe070;
     border-color: #8a6010;
     box-shadow: 0 0 0 2px #8a6010;
   }

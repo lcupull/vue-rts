@@ -14,6 +14,15 @@ export const UNIT_RADIUS = 14;
 export const UNIT_SPEED = 150;
 export const EDGE_PADDING = 8;
 
+export const GROUP_LIST = [
+  { id: 'group1', label: 'Группа 1', color: '#e0e0e0' },
+  { id: 'group2', label: 'Группа 2', color: '#c0635a' },
+  { id: 'group3', label: 'Группа 3', color: '#5a8ec0' }
+];
+
+// Безопасный доступ к группе: неизвестный id даёт нейтральный вид
+export const groupById = (id) => GROUP_LIST.find((g) => g.id === id) || GROUP_LIST[0];
+
 // Характеристики юнита: здоровье, сила, скорость, скорость атаки (ударов в секунду)
 export const UNIT_STATS = {
   hp: 100,

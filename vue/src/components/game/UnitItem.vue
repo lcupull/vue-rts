@@ -10,7 +10,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useStore } from 'vuex';
-import { UNIT_RADIUS } from '@/config/game';
+import { UNIT_RADIUS, groupById } from '@/config/game';
 
 const props = defineProps({
   unit: { type: Object, required: true }
@@ -18,6 +18,8 @@ const props = defineProps({
 
 const store = useStore();
 const isSelected = computed(() => store.getters['game/isUnitSelected'](props.unit.id));
+// Фон юнита — цвет его группы
+const color = computed(() => groupById(props.unit.group).color);
 
 const style = computed(() => ({
   left: `${props.unit.position.x}px`,
@@ -25,7 +27,8 @@ const style = computed(() => ({
   width: `${UNIT_RADIUS * 2}px`,
   height: `${UNIT_RADIUS * 2}px`,
   marginLeft: `${-UNIT_RADIUS}px`,
-  marginTop: `${-UNIT_RADIUS}px`
+  marginTop: `${-UNIT_RADIUS}px`,
+  background: color.value
 }));
 
 const onClick = () => store.dispatch('events/clickUnit', props.unit.id);
@@ -35,13 +38,11 @@ const onClick = () => store.dispatch('events/clickUnit', props.unit.id);
 .unit {
   position: absolute;
   border-radius: 50%;
-  background: #e0e0e0;
   border: 1px solid #1a1a1a;
   cursor: pointer;
   transition: transform 0.08s;
 
   &.unit--selected {
-    background: #ffe070;
     border-color: #8a6010;
     box-shadow: 0 0 0 2px #8a6010;
   }

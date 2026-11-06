@@ -1,6 +1,20 @@
 <template>
   <div class="build-panel" :style="style">
     <div class="build-panel__title">Стройка</div>
+
+    <!-- Чья постройка: свои или вражеские -->
+    <div class="build-panel__groups">
+      <button
+        v-for="g in groups"
+        :key="g.id"
+        class="build-panel__group"
+        :class="{ 'build-panel__group--active': g.id === buildGroup }"
+        :style="{ background: g.color }"
+        :title="g.label"
+        @click.stop="() => store.dispatch('events/setBuildGroup', g.id)"
+      ></button>
+    </div>
+
     <button
       v-for="type in types"
       :key="type.type"
@@ -18,17 +32,23 @@
 <script setup>
 import { computed } from 'vue';
 import { useStore } from 'vuex';
-import { BUILDING_TYPES, BUILD_ICON_TILE, Z_INDEX } from '@/config/game';
+import { BUILDING_TYPES, BUILD_ICON_TILE, Z_INDEX, GROUP_LIST, groupById } from '@/config/game';
 
 const store = useStore();
 const types = BUILDING_TYPES;
+const groups = GROUP_LIST;
 const style = { zIndex: Z_INDEX.BUILD_PANEL };
+
+// Группа, от имени которой ставится здание
+const buildGroup = computed(() => store.state.game.buildGroup);
+const groupColor = computed(() => groupById(buildGroup.value).color);
 
 const isActive = (type) => store.state.game.buildType === type;
 
-// Иконка — квадрат NxN клеток в масштабе панели
+// Иконка — квадрат NxN клеток в масштабе панели, окрашен в цвет выбранной группы
 const itemStyle = (type) => ({
-  '--icon-size': `${type.size * BUILD_ICON_TILE}px`
+  '--icon-size': `${type.size * BUILD_ICON_TILE}px`,
+  '--icon-color': groupColor.value
 });
 
 const onPick = (type) => store.dispatch('events/pickBuilding', type);
@@ -54,6 +74,31 @@ const onPick = (type) => store.dispatch('events/pickBuilding', type);
   font-weight: 600;
 }
 
+.build-panel__groups {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.build-panel__group {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #1a1a1a;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.45;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &.build-panel__group--active {
+    opacity: 1;
+    box-shadow: 0 0 0 2px #a0d0ff;
+  }
+}
+
 .build-panel__item {
   display: flex;
   align-items: center;
@@ -72,7 +117,7 @@ const onPick = (type) => store.dispatch('events/pickBuilding', type);
     content: '';
     width: var(--icon-size);
     height: var(--icon-size);
-    background: #d8d8d8;
+    background: var(--icon-color);
     border: 1px solid #1a1a1a;
   }
 
