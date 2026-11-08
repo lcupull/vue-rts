@@ -19,6 +19,7 @@ const unit = (tileX, tileY, group = 'group1') => ({
   target: null,
   path: [],
   pathIndex: 0,
+  targetQueue: [],
   group,
   ...UNIT_STATS,
   maxHp: UNIT_STATS.hp,
@@ -50,9 +51,9 @@ const computeFormationSlots = (center, count) => {
 };
 
 const aabb = (b) => ({
-  left:   b.position.x - b.size / 2,
-  right:  b.position.x + b.size / 2,
-  top:    b.position.y - b.size / 2,
+  left: b.position.x - b.size / 2,
+  right: b.position.x + b.size / 2,
+  top: b.position.y - b.size / 2,
   bottom: b.position.y + b.size / 2
 });
 
@@ -60,7 +61,7 @@ const collidesWithBuildings = (x, y, r, buildings) => {
   return buildings.some((b) => {
     const a = aabb(b);
     const cx = Math.max(a.left, Math.min(x, a.right));
-    const cy = Math.max(a.top,  Math.min(y, a.bottom));
+    const cy = Math.max(a.top, Math.min(y, a.bottom));
     const dx = x - cx;
     const dy = y - cy;
     return dx * dx + dy * dy < r * r;
@@ -72,7 +73,7 @@ const resolveCollisions = (x, y, r, buildings) => {
   buildings.forEach((b) => {
     const a = aabb(b);
     const cx = Math.max(a.left, Math.min(position.x, a.right));
-    const cy = Math.max(a.top,  Math.min(position.y, a.bottom));
+    const cy = Math.max(a.top, Math.min(position.y, a.bottom));
     const dx = position.x - cx;
     const dy = position.y - cy;
     const d2 = dx * dx + dy * dy;
@@ -115,7 +116,7 @@ const cellBlocked = (cx, cy, buildings) => {
   return buildings.some((b) => {
     const h = b.size / 2 + UNIT_RADIUS;
     return wx >= b.position.x - h && wx <= b.position.x + h &&
-           wy >= b.position.y - h && wy <= b.position.y + h;
+      wy >= b.position.y - h && wy <= b.position.y + h;
   });
 };
 
@@ -143,8 +144,8 @@ const astar = (sx, sy, ex, ey, buildings) => {
   const came = new Map();
   const g = new Map([[key(sc.x, sc.y), 0]]);
   const dirs = [
-    [0,-1,1],[0,1,1],[-1,0,1],[1,0,1],
-    [-1,-1,1.414],[1,-1,1.414],[-1,1,1.414],[1,1,1.414]
+    [0, -1, 1], [0, 1, 1], [-1, 0, 1], [1, 0, 1],
+    [-1, -1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [1, 1, 1.414]
   ];
 
   let iter = 0;
@@ -296,24 +297,46 @@ export default {
     },
 
     getPathSegments: () => (unit) => {
-      if (!unit.path || unit.path.length === 0) return [];
       const segments = [];
       let from = unit.position;
-      for (let i = unit.pathIndex; i < unit.path.length; i++) {
-        const to = unit.path[i];
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        const len = Math.hypot(dx, dy);
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        segments.push({
-          left: `${from.x}px`,
-          top: `${from.y}px`,
-          width: `${len}px`,
-          transform: `rotate(${angle}deg)`,
-          transformOrigin: '0 50%'
-        });
-        from = to;
+
+      // Текущий путь
+      if (unit.path && unit.path.length > 0) {
+        for (let i = unit.pathIndex; i < unit.path.length; i++) {
+          const to = unit.path[i];
+          const dx = to.x - from.x;
+          const dy = to.y - from.y;
+          const len = Math.hypot(dx, dy);
+          const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          segments.push({
+            left: `${from.x}px`,
+            top: `${from.y}px`,
+            width: `${len}px`,
+            transform: `rotate(${angle}deg)`,
+            transformOrigin: '0 50%'
+          });
+          from = to;
+        }
       }
+
+      // Точки из очереди
+      if (unit.targetQueue && unit.targetQueue.length > 0) {
+        for (const to of unit.targetQueue) {
+          const dx = to.x - from.x;
+          const dy = to.y - from.y;
+          const len = Math.hypot(dx, dy);
+          const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          segments.push({
+            left: `${from.x}px`,
+            top: `${from.y}px`,
+            width: `${len}px`,
+            transform: `rotate(${angle}deg)`,
+            transformOrigin: '0 50%'
+          });
+          from = to;
+        }
+      }
+
       return segments;
     }
   },
@@ -326,12 +349,42 @@ export default {
         u.target = null;
         u.path = [];
         u.pathIndex = 0;
+        u.targetQueue = [];
         return;
       }
-      const t = { x: clamp(target.x), y: clamp(target.y) };
+      let t = { x: clamp(target.x), y: clamp(target.y) };
+
+      // Если точка внутри здания — выталкиваем её на границу
+      if (collidesWithBuildings(t.x, t.y, UNIT_RADIUS, state.buildings)) {
+        const fixed = resolveCollisions(t.x, t.y, UNIT_RADIUS, state.buildings);
+        t = { x: clamp(fixed.x), y: clamp(fixed.y) };
+      }
+
       u.target = t;
+      u.targetQueue = [];
       u.path = buildPath(u.position, t, state.buildings, UNIT_RADIUS);
       u.pathIndex = 0;
+    },
+
+    ADD_TARGET_TO_QUEUE: (state, { id, target }) => {
+      const u = state.units.find((u) => u.id === id);
+      if (!u) return;
+      let t = { x: clamp(target.x), y: clamp(target.y) };
+
+      // Если точка внутри здания — выталкиваем её на границу
+      if (collidesWithBuildings(t.x, t.y, UNIT_RADIUS, state.buildings)) {
+        const fixed = resolveCollisions(t.x, t.y, UNIT_RADIUS, state.buildings);
+        t = { x: clamp(fixed.x), y: clamp(fixed.y) };
+      }
+
+      u.targetQueue.push(t);
+
+      if (!u.target || u.pathIndex >= u.path.length) {
+        const nextTarget = u.targetQueue.shift();
+        u.target = nextTarget;
+        u.path = buildPath(u.position, nextTarget, state.buildings, UNIT_RADIUS);
+        u.pathIndex = 0;
+      }
     },
 
     SET_POSITION: (state, { id, x, y }) => {
@@ -420,7 +473,14 @@ export default {
         }
 
         if (u.pathIndex >= u.path.length) {
-          commit('SET_TARGET', { id: u.id, target: null });
+          if (u.targetQueue.length > 0) {
+            const nextTarget = u.targetQueue.shift();
+            u.path = buildPath(u.position, nextTarget, state.buildings, UNIT_RADIUS);
+            u.pathIndex = 0;
+            u.target = nextTarget;
+          } else {
+            commit('SET_TARGET', { id: u.id, target: null });
+          }
         }
       });
     }
